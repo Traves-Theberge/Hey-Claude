@@ -7,7 +7,38 @@ import { TTSManager } from './tts/tts-manager';
 import type { AppConfig } from '../renderer/lib/ipc';
 
 const CONFIG_PATH = path.join(app.getPath('home'), '.hey-claude-config.json');
-const IS_DEV = !app.isPackaged;
+
+function findWakeWordModel(): string {
+  const appRoot = app.getAppPath();
+  const platform = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'mac' : 'linux';
+
+  // Check candidates in order of preference
+  const candidates = [
+    path.join(appRoot, 'keywords', `hey-claude_en_${platform}_v4_0_0.ppn`),
+    path.join(appRoot, 'keywords', `hey-claude-en-${platform}.ppn`),
+    // Fallback: any hey-claude .ppn in keywords/
+    ...(() => {
+      const dir = path.join(appRoot, 'keywords');
+      try {
+        return fs.readdirSync(dir)
+          .filter(f => f.startsWith('hey-claude') && f.endsWith('.ppn'))
+          .map(f => path.join(dir, f));
+      } catch { return []; }
+    })(),
+    // Root level fallback
+    path.join(appRoot, 'hey-claude.ppn'),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      console.log(`[WakeWord] Using model: ${candidate}`);
+      return candidate;
+    }
+  }
+
+  console.warn('[WakeWord] No wake word model found. Searched:', candidates.slice(0, 3));
+  return candidates[0]; // Return first candidate path even if missing (will error on init)
+}
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -65,11 +96,7 @@ function createWindow(): void {
     },
   });
 
-  if (IS_DEV) {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-  }
+  mainWindow.loadFile(path.join(__dirname, '../../renderer/index.html'));
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -166,7 +193,7 @@ function initWakeWord(config: AppConfig): void {
     wakeWordDetector = new WakeWordDetector({
       accessKey: config.picovoiceAccessKey,
       sensitivity: config.sensitivity,
-      modelPath: path.join(__dirname, '../../hey-claude.ppn'),
+      modelPath: findWakeWordModel(),
       onDetected: () => {
         console.log('Wake word detected!');
         mainWindow?.webContents.send('wake-word-detected');
