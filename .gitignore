@@ -1,7 +1,7 @@
 node_modules/
 dist/
 .env
-*.ppn
+## Keep keywords/*.ppn tracked
 .hey-claude-config.json
 *.log
 .DS_Store
