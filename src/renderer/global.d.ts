@@ -1,0 +1,60 @@
+import type { ElectronAPI } from '../preload/preload';
+
+declare global {
+  interface Window {
+    electronAPI: ElectronAPI;
+  }
+
+  // Web Speech API types
+  interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    start(): void;
+    stop(): void;
+    abort(): void;
+    onresult: ((event: SpeechRecognitionEvent) => void) | null;
+    onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+    onend: (() => void) | null;
+    onstart: (() => void) | null;
+    onspeechend: (() => void) | null;
+  }
+
+  interface SpeechRecognitionEvent {
+    results: SpeechRecognitionResultList;
+    resultIndex: number;
+  }
+
+  interface SpeechRecognitionResultList {
+    length: number;
+    item(index: number): SpeechRecognitionResult;
+    [index: number]: SpeechRecognitionResult;
+  }
+
+  interface SpeechRecognitionResult {
+    isFinal: boolean;
+    length: number;
+    item(index: number): SpeechRecognitionAlternative;
+    [index: number]: SpeechRecognitionAlternative;
+  }
+
+  interface SpeechRecognitionAlternative {
+    transcript: string;
+    confidence: number;
+  }
+
+  interface SpeechRecognitionErrorEvent {
+    error: string;
+    message: string;
+  }
+
+  const SpeechRecognition: {
+    new (): SpeechRecognition;
+  };
+
+  const webkitSpeechRecognition: {
+    new (): SpeechRecognition;
+  };
+}
+
+export {};
